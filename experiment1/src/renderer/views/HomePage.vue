@@ -12,9 +12,15 @@
                 v-model="formulaInput"
                 class="formula-input"
                 @input="checkValidation"
+                autofocus
               >
                 <div slot="append">
-                  <el-popover placement="bottom" width="400" trigger="manual" v-model="symbolVisible">
+                  <el-popover
+                    placement="bottom"
+                    width="400"
+                    trigger="manual"
+                    v-model="symbolVisible"
+                  >
                     <div class="btn-group">
                       <template v-for="(item, index) in symbolArr">
                         <el-button
@@ -25,19 +31,31 @@
                         >{{item}}</el-button>
                       </template>
                     </div>
-                    <el-button slot="reference" icon="el-icon-more" @click="symbolVisible = !symbolVisible;"></el-button>
+                    <el-button
+                      slot="reference"
+                      icon="el-icon-more"
+                      @click="symbolVisible = !symbolVisible;"
+                    ></el-button>
                   </el-popover>
                 </div>
               </el-input>
               <el-button type="primary" @click="handleResolve" :disabled="!valid">求取范式</el-button>
             </div>
-            <div :class="valid ? 'tips' : 'tips-error tips'">{{valid ? "通过键盘输入变元，通过点击按钮输入符号" : '检测到无效公式!'}}</div>
+            <div
+              :class="valid ? 'tips' : 'tips-error tips'"
+            >{{valid ? "通过键盘输入变元，通过点击按钮输入符号" : '检测到无效公式!'}}</div>
           </div>
           <div class="bottom-container">
             <el-tabs type="border-card">
               <el-tab-pane label="真值表">
                 <div class="table-container">
-                  <el-table :data="truthTable" border="" style="width: 100%; ">
+                  <el-table
+                    :data="truthTable"
+                    border=""
+                    style="width: 100%; "
+                    lazy
+                    :load="loadRowDataAsync"
+                  >
                     <el-table-column
                       v-for="(item, index) in alpha"
                       :key="index"
@@ -89,7 +107,7 @@ export default {
     alpha: [],
     truthTable: [],
     truthMap: {},
-    symbolArr: ['¬', '∧', '∨', '→', '↔'],
+    symbolArr: ['¬', '∧', '∨', '→', '↔', '(', ')'],
     selectPosBefore: 0,
     disjunctionArr: [],
     conjunctionArr: [],
@@ -100,7 +118,9 @@ export default {
       if (val.length === 0) {
         this.valid = true;
       } else {
-        val.match(/[^A-Za-z¬∧∨→↔()]/g) || val.match(/[∧∨→↔](?=[∧∨→↔])/g) || val.match(/[A-Za-z](?=[A-Za-z])/g)
+        val.match(/[^A-Za-z¬∧∨→↔()]/g) ||
+        val.match(/[∧∨→↔](?=[∧∨→↔])/g) ||
+        val.match(/[A-Za-z](?=[A-Za-z])/g)
           ? (this.valid = false)
           : (this.valid = true);
       }
@@ -119,6 +139,7 @@ export default {
       }, 0);
       this.checkValidation(this.formulaInput);
     },
+    loadRowDataAsync (tree, treeNode, resolve) {},
     icp (ch) {
       // 栈外
       switch (ch) {
@@ -184,16 +205,21 @@ export default {
             this.postfix += symbol;
             symbolStack.pop();
           }
+          symbolStack.pop();
         } else {
-          for (
-            symbol = this.top(symbolStack);
-            symbol && this.icp(ch) <= this.isp(symbol);
-            symbol = this.top(symbolStack)
-          ) {
-            if (symbol !== '(') this.postfix += symbol;
-            symbolStack.pop();
+          if (ch === '(' && this.top(symbolStack) === '(') {
+            symbolStack.push(ch);
+          } else {
+            for (
+              symbol = this.top(symbolStack);
+              symbol && this.icp(ch) <= this.isp(symbol);
+              symbol = this.top(symbolStack)
+            ) {
+              if (symbol !== '(') this.postfix += symbol;
+              symbolStack.pop();
+            }
+            symbolStack.push(ch);
           }
-          symbolStack.push(ch);
         }
       }
       while (symbolStack.length !== 1) {
@@ -260,6 +286,9 @@ export default {
       if (this.formulaLast !== this.formulaInput) {
         this.reset();
         this.formulaAfterInit = this.formulaInput + '#';
+        this.formulaAfterInit = this.formulaAfterInit.replace(/(¬+)/, item => {
+          return item.length % 2 ? '¬' : '';
+        });
         this.transform();
         this.dfs(0);
         this.$refs.disjunction.$emit('resolveDisjunction', [
