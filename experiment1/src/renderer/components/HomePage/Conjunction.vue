@@ -8,6 +8,7 @@ export default {
     conjunctionStr: '空'
   }),
   mounted () {
+    //  输出主析取范式
     this.$on('resolveConjunction', ([alpha, conjunctionArr]) => {
       this.conjunctionStr = '';
       conjunctionArr.forEach((item, index) => {

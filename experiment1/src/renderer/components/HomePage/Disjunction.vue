@@ -8,6 +8,7 @@ export default {
     disjunctionStr: '空'
   }),
   mounted () {
+    //  输出主合取范式
     this.$on('resolveDisjunction', ([alpha, disjunctionArr]) => {
       this.disjunctionStr = '';
       disjunctionArr.forEach((item, index) => {
