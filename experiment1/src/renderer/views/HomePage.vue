@@ -12,9 +12,15 @@
                 v-model="formulaInput"
                 class="formula-input"
                 @input="checkValidation"
+                autofocus
               >
                 <div slot="append">
-                  <el-popover placement="bottom" width="400" trigger="manual" v-model="symbolVisible">
+                  <el-popover
+                    placement="bottom"
+                    width="400"
+                    trigger="manual"
+                    v-model="symbolVisible"
+                  >
                     <div class="btn-group">
                       <template v-for="(item, index) in symbolArr">
                         <el-button
@@ -25,19 +31,31 @@
                         >{{item}}</el-button>
                       </template>
                     </div>
-                    <el-button slot="reference" icon="el-icon-more" @click="symbolVisible = !symbolVisible;"></el-button>
+                    <el-button
+                      slot="reference"
+                      icon="el-icon-more"
+                      @click="symbolVisible = !symbolVisible;"
+                    ></el-button>
                   </el-popover>
                 </div>
               </el-input>
               <el-button type="primary" @click="handleResolve" :disabled="!valid">求取范式</el-button>
             </div>
-            <div :class="valid ? 'tips' : 'tips-error tips'">{{valid ? "通过键盘输入变元，通过点击按钮输入符号" : '检测到无效公式!'}}</div>
+            <div
+              :class="valid ? 'tips' : 'tips-error tips'"
+            >{{valid ? "通过键盘输入变元，通过点击按钮输入符号" : '检测到无效公式!'}}</div>
           </div>
           <div class="bottom-container">
             <el-tabs type="border-card">
               <el-tab-pane label="真值表">
                 <div class="table-container">
-                  <el-table :data="truthTable" border="" style="width: 100%; ">
+                  <el-table
+                    :data="truthTable"
+                    border=""
+                    style="width: 100%; "
+                    lazy
+                    :load="loadRowDataAsync"
+                  >
                     <el-table-column
                       v-for="(item, index) in alpha"
                       :key="index"
@@ -89,7 +107,7 @@ export default {
     alpha: [],
     truthTable: [],
     truthMap: {},
-    symbolArr: ['¬', '∧', '∨', '→', '↔'],
+    symbolArr: ['¬', '∧', '∨', '→', '↔', '(', ')'],
     selectPosBefore: 0,
     disjunctionArr: [],
     conjunctionArr: [],
@@ -100,7 +118,9 @@ export default {
       if (val.length === 0) {
         this.valid = true;
       } else {
-        val.match(/[^A-Za-z¬∧∨→↔()]/g) || val.match(/[∧∨→↔](?=[∧∨→↔])/g) || val.match(/[A-Za-z](?=[A-Za-z])/g)
+        val.match(/[^A-Za-z¬∧∨→↔()]/g) ||
+        val.match(/[∧∨→↔](?=[∧∨→↔])/g) ||
+        val.match(/[A-Za-z](?=[A-Za-z])/g)
           ? (this.valid = false)
           : (this.valid = true);
       }
@@ -120,7 +140,7 @@ export default {
       this.checkValidation(this.formulaInput);
     },
     icp (ch) {
-      // 栈外
+      // 栈外运算符优先级
       switch (ch) {
         case '#':
           return 0;
@@ -141,7 +161,7 @@ export default {
       }
     },
     isp (ch) {
-      // 栈内
+      // 栈内运算符优先级
       switch (ch) {
         case '#':
           return 0;
@@ -164,6 +184,7 @@ export default {
     top (arr) {
       return arr[arr.length - 1];
     },
+    //  转化为后缀表达式
     transform () {
       const symbolStack = [];
       symbolStack.push('#');
@@ -173,9 +194,11 @@ export default {
         if (ch.match(/[A-Za-z]/)) {
           this.postfix += ch;
           if (this.alpha.indexOf(ch) === -1) {
+            //  扫描字符串，获取变元
             this.alpha.push(ch);
           }
         } else if (ch === ')') {
+          //  当遇到右括号时，将栈内的元素弹出，直到弹出左括号
           for (
             symbol = this.top(symbolStack);
             symbol !== '(';
@@ -184,34 +207,45 @@ export default {
             this.postfix += symbol;
             symbolStack.pop();
           }
+          symbolStack.pop();
         } else {
-          for (
-            symbol = this.top(symbolStack);
-            symbol && this.icp(ch) <= this.isp(symbol);
-            symbol = this.top(symbolStack)
-          ) {
-            if (symbol !== '(') this.postfix += symbol;
-            symbolStack.pop();
+          //  正常情况下比较运算符的栈内外优先级，当栈外优先级小于栈内优先级时弹出，否则入栈
+          if (ch === '(' && this.top(symbolStack) === '(') {
+            symbolStack.push(ch);
+          } else {
+            for (
+              symbol = this.top(symbolStack);
+              symbol && this.icp(ch) <= this.isp(symbol);
+              symbol = this.top(symbolStack)
+            ) {
+              if (symbol !== '(') this.postfix += symbol;
+              symbolStack.pop();
+            }
+            symbolStack.push(ch);
           }
-          symbolStack.push(ch);
         }
       }
+      //  将栈内剩余的运算符弹出
       while (symbolStack.length !== 1) {
         const symbol = symbolStack.pop();
         if (symbol !== '(') this.postfix += symbol;
       }
     },
+    //  计算变元不同赋值时表达式的结果
     cal () {
       const symbolStack = [];
       for (let i = 0; i < this.postfix.length; i++) {
         const ch = this.postfix.charAt(i);
         if (ch === '#') break;
+        //  当扫描到变元时变元的值入栈
         if (ch.match(/[A-Za-z]/)) {
           symbolStack.push(this.truthMap[ch]);
         } else if (ch === '¬') {
+          //  遇到 非 运算符时弹出栈顶元素，再将其反值推入栈
           const mark = symbolStack.pop();
           symbolStack.push(!mark);
         } else {
+          //  弹出栈顶的两个元素，计算结果后推入栈
           const [mark1, mark2] = [symbolStack.pop(), symbolStack.pop()];
           switch (ch) {
             case '∧':
@@ -229,9 +263,12 @@ export default {
           }
         }
       }
+      //  最后栈顶元素即为表达式结果
       return this.top(symbolStack);
     },
+    //  递归求取真值表，并储存大项、小项
     dfs (currentVariableIndex) {
+      //  当变元赋值完毕后计算结果，否则进行递归赋值
       if (currentVariableIndex === this.alpha.length) {
         const ans = this.cal();
         let tempObj = {};
@@ -260,6 +297,9 @@ export default {
       if (this.formulaLast !== this.formulaInput) {
         this.reset();
         this.formulaAfterInit = this.formulaInput + '#';
+        this.formulaAfterInit = this.formulaAfterInit.replace(/(¬+)/, item => {
+          return item.length % 2 ? '¬' : '';
+        });
         this.transform();
         this.dfs(0);
         this.$refs.disjunction.$emit('resolveDisjunction', [
