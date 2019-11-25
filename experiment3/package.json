@@ -1,0 +1,11 @@
+{
+  "name": "experiment3",
+  "version": "1.0.0",
+  "description": "discrete-experiment-3",
+  "main": "index.js",
+  "author": "Hibiscus_L",
+  "license": "ISC",
+  "dependencies": {
+    "readline-sync": "^1.4.10"
+  }
+}
