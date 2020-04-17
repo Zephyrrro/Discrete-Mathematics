@@ -8,10 +8,10 @@ module.exports = matrix => {
 
   if (Judge.Reflexive(matrix)) {
     console.log("自反性");
-  } else if (Judge.Irreflexive(matrix)) {
+  } 
+  if (Judge.Irreflexive(matrix)) {
     console.log("反自反性");
   }
-
   if (Judge.Symmetry(matrix)) {
     console.log("对称性");
   }

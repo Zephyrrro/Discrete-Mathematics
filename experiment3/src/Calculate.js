@@ -1,3 +1,8 @@
+/**
+ * 输入数字，返回其因子
+ * @param {Number} number
+ * @returns
+ */
 const getFactors = number => {
   const factors = [];
   const k = Math.round(Math.sqrt(number));
@@ -11,9 +16,15 @@ const getFactors = number => {
       }
     }
   }
+  //  返回升序排序的因子数组
   return factors.sort((first, second) => first - second);
 };
 
+/**
+ * 根据各个因子之间能否互相整除得到盖住关系
+ * @param {Array<Number>} factors
+ * @returns
+ */
 const getCovers = factors => {
   const covers = [];
   const { length } = factors;
