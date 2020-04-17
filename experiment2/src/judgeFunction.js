@@ -53,7 +53,6 @@ const Transitivity = matrix => {
   return true;
 };
 
-// export { Reflexive, Irreflexive, Symmetry, Dissymmetry, Transitivity };
 module.exports = {
   Reflexive,
   Irreflexive,

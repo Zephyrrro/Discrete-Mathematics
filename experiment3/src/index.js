@@ -13,8 +13,6 @@ console.log(`${n}一共有${length}个因子: [${factors}]`);
 const cover = getCovers(factors);
 console.log(`偏序集上的盖住关系：[${cover}]`);
 
-
-
 if(Judge(factors, n)) {
   console.log("不是有补格.");
 } else {
